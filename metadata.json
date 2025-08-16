@@ -1,0 +1,5 @@
+{
+  "name": "React Expense Tracker",
+  "description": "A modern, responsive expense tracker application built with React and TypeScript. It allows users to log income and expenses, view financial summaries, and visualize spending habits with interactive charts, all while storing data locally in the browser.",
+  "requestFramePermissions": []
+}

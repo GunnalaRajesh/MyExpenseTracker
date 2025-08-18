@@ -10,20 +10,22 @@
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
-    
   },
   "dependencies": {
+    "@google/genai": "latest",
+    "jspdf": "2.5.1",
+    "jspdf-autotable": "3.8.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "recharts": "^3.1.2",
-    "uuid": "^11.1.0",
-    "jspdf": "2.5.1",
-    "jspdf-autotable": "3.8.2",
-    "@google/genai": "latest"
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "vite-plugin-pwa": "^1.0.2",
+    "workbox-window": "^7.3.0"
   }
 }

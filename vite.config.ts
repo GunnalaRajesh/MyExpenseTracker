@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
           '/MyExpenseTracker/apple-touch-icon.png'
         ],
         manifest: {
-          name: 'My Expense Tracker',
+          name: 'Ex-Tra',
           short_name: 'Expenses',
           description: 'Track your expenses quickly.',
           theme_color: '#0f172a',

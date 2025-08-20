@@ -22,10 +22,8 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: [
-          'favicon.svg',
-          'favicon.ico',
-          'robots.txt',
-          'apple-touch-icon.png',
+          '/MyExpenseTracker/favicon.ico',
+          '/MyExpenseTracker/apple-touch-icon.png'
         ],
         manifest: {
           name: 'My Expense Tracker',
@@ -38,23 +36,23 @@ export default defineConfig(({ mode }) => {
           scope: '/MyExpenseTracker/',
           icons: [
             {
-              src: 'pwa-192x192.png',
+              src: '/MyExpenseTracker/pwa-192x192.png',
               sizes: '192x192',
               type: 'image/png'
             },
             {
-              src: 'pwa-512x512.png',
+              src: '/MyExpenseTracker/pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png'
             },
             {
-              src: 'pwa-maskable-192.png',
+              src: '/MyExpenseTracker/pwa-maskable-192.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'maskable'
             },
             {
-              src: 'pwa-maskable-512.png',
+              src: '/MyExpenseTracker/pwa-maskable-512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable'

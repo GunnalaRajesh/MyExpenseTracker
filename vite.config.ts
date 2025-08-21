@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => {
         ],
         manifest: {
           name: 'Ex-Tra',
-          short_name: 'Expenses',
+          short_name: 'Ex-Tra',
           description: 'Track your expenses quickly.',
           theme_color: '#0f172a',
           background_color: '#0f172a',

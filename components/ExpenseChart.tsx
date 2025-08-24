@@ -7,6 +7,7 @@ import { Transaction, TransactionType, Category } from '../types';
 
 interface ExpenseChartProps {
   transactions: Transaction[];
+  currentDate: Date;
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF1943', '#19D1FF', '#FF6B19'];
@@ -69,7 +70,7 @@ const CustomLineTooltip: React.FC<any> = ({ active, payload, label }) => {
     return null;
 };
 
-const ExpenseChart: React.FC<ExpenseChartProps> = ({ transactions }) => {
+const ExpenseChart: React.FC<ExpenseChartProps> = ({ transactions, currentDate }) => {
   const [activeView, setActiveView] = useState<'category' | 'daily'>('category');
 
   const { expenseData, dailySpendingData } = useMemo(() => {
@@ -92,11 +93,9 @@ const ExpenseChart: React.FC<ExpenseChartProps> = ({ transactions }) => {
     }
 
     let lineChartData: { day: number, amount: number }[] = [];
-    if (transactions.length > 0 && transactions.some(t => t.type === TransactionType.EXPENSE)) {
-        const expenseDates = transactions.filter(t => t.type === TransactionType.EXPENSE).map(t => new Date(t.date + 'T00:00:00'));
-        const date = expenseDates.length > 0 ? expenseDates[0] : new Date();
-        const year = date.getFullYear();
-        const month = date.getMonth();
+    if (expenses.length > 0) {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
 
         const expensesByDay = new Map<number, number>();
@@ -111,7 +110,7 @@ const ExpenseChart: React.FC<ExpenseChartProps> = ({ transactions }) => {
     }
 
     return { expenseData: pieChartData, dailySpendingData: lineChartData };
-  }, [transactions]);
+  }, [transactions, currentDate]);
   
   const isDarkMode = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   const textColor = isDarkMode ? '#e2e8f0' : '#475569';
@@ -186,7 +185,7 @@ const ExpenseChart: React.FC<ExpenseChartProps> = ({ transactions }) => {
                     By Category
                 </button>
                 <button type="button" onClick={() => setActiveView('daily')} className={`py-1.5 px-3 text-sm font-medium rounded-r-md transition-colors -ml-px ${activeView === 'daily' ? 'bg-indigo-600 text-white z-10 ring-2 ring-indigo-500' : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}`}>
-                    Daily Trend
+                    Daily Trends
                 </button>
             </div>
         </div>

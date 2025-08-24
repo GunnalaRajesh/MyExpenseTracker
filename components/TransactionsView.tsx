@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Transaction, Category } from '../types';
+import { Transaction, Category, TransactionType } from '../types';
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from '../constants';
 import { XMarkIcon } from './icons';
 import TransactionList from './TransactionList';
@@ -9,12 +9,20 @@ interface TransactionsViewProps {
   onClose: () => void;
   transactions: Transaction[];
   deleteTransaction: (id: string) => void;
+  onDownloadPdf: (
+    transactionsToExport: Transaction[],
+    income: number,
+    expenses: number,
+    periodTitle: string,
+    pieChartImage: string | null,
+    lineChartImage: string | null
+  ) => void;
 }
 
 const ALL_CATEGORIES = [...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES];
 const today = new Date().toISOString().split('T')[0];
 
-const TransactionsView: React.FC<TransactionsViewProps> = ({ isOpen, onClose, transactions, deleteTransaction }) => {
+const TransactionsView: React.FC<TransactionsViewProps> = ({ isOpen, onClose, transactions, deleteTransaction, onDownloadPdf }) => {
   const [searchText, setSearchText] = useState('');
   const [category, setCategory] = useState<Category | 'all'>('all');
   const [startDate, setStartDate] = useState('');
@@ -157,10 +165,17 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ isOpen, onClose, tr
           <TransactionList
             transactions={filteredTransactions}
             deleteTransaction={deleteTransaction}
-            totalIncome={totalIncome}
-            totalExpenses={totalExpenses}
-            periodTitle={periodTitle}
             allTransactions={transactions}
+            onDownloadPdf={(pieChartImage, lineChartImage) => {
+              onDownloadPdf(
+                filteredTransactions,
+                totalIncome,
+                totalExpenses,
+                periodTitle,
+                pieChartImage,
+                lineChartImage
+              );
+            }}
           />
         </div>
       </main>

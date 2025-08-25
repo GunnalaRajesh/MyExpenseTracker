@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, LabelList,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip
@@ -128,6 +128,7 @@ const getChartAsImage = (ref: React.RefObject<HTMLDivElement>): Promise<string |
 const TransactionList: React.FC<TransactionListProps> = ({ transactions, deleteTransaction, allTransactions, onDownloadPdf }) => {
   const pieChartRef = useRef<HTMLDivElement>(null);
   const lineChartRef = useRef<HTMLDivElement>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const { expenseData, dailySpendingData } = useMemo(() => {
     const expenses = transactions.filter(t => t.type === TransactionType.EXPENSE);
@@ -185,9 +186,17 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, deleteT
       alert("No transactions to export for this period.");
       return;
     }
-    const pieChartImage = await getChartAsImage(pieChartRef);
-    const lineChartImage = await getChartAsImage(lineChartRef);
-    onDownloadPdf(pieChartImage, lineChartImage);
+    setIsGeneratingPdf(true);
+    try {
+      const pieChartImage = await getChartAsImage(pieChartRef);
+      const lineChartImage = await getChartAsImage(lineChartRef);
+      onDownloadPdf(pieChartImage, lineChartImage);
+    } catch (error) {
+      console.error("Failed to generate PDF:", error);
+      alert("An error occurred while generating the PDF. Please try again.");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   const handleDownloadJson = () => {
@@ -219,7 +228,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, deleteT
         {expenseData.length > 0 && (
           <ResponsiveContainer width="100%" height="100%">
             <PieChart margin={{ top: 40, right: 40, bottom: 40, left: 40 }}>
-              <Pie data={expenseData} cx="50%" cy="50%" labelLine outerRadius={100} fill="#8884d8" dataKey="value" nameKey="name" label={renderOutsideLabel}>
+              <Pie isAnimationActive={false} data={expenseData} cx="50%" cy="50%" labelLine outerRadius={100} fill="#8884d8" dataKey="value" nameKey="name" label={renderOutsideLabel}>
                 {expenseData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
                 <LabelList dataKey="percent" content={renderPercentLabel} />
               </Pie>
@@ -235,7 +244,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, deleteT
               <XAxis dataKey="date" tick={{ fill: '#475569', fontSize: 10 }} axisLine={{ stroke: '#475569' }} tickLine={{ stroke: '#475569' }} tickFormatter={(dateStr) => new Date(dateStr + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} interval="preserveStartEnd" />
               <YAxis tickFormatter={(value) => value.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact', compactDisplay: 'short' })} tick={{ fill: '#475569', fontSize: 12 }} axisLine={{ stroke: '#475569' }} tickLine={{ stroke: '#475569' }} />
               <Tooltip content={<CustomLineTooltip />} />
-              <Line type="monotone" dataKey="amount" name="Amount Spent" stroke="#8884d8" strokeWidth={2} dot={{ r: 4, fill: '#8884d8' }} activeDot={{ r: 8, stroke: '#6366f1' }}>
+              <Line isAnimationActive={false} type="monotone" dataKey="amount" name="Amount Spent" stroke="#8884d8" strokeWidth={2} dot={{ r: 4, fill: '#8884d8' }} activeDot={{ r: 8, stroke: '#6366f1' }}>
                 <LabelList dataKey="amount" content={<CustomizedLineLabel />} />
               </Line>
             </LineChart>
@@ -257,11 +266,12 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, deleteT
             </button>
             <button
               onClick={handleTriggerPdfDownload}
-              className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors"
+              disabled={isGeneratingPdf}
+              className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors disabled:opacity-50 disabled:cursor-wait"
               aria-label="Download transactions as PDF"
             >
               <DownloadIcon className="w-5 h-5" />
-              <span>PDF</span>
+              <span>{isGeneratingPdf ? 'Generating...' : 'PDF'}</span>
             </button>
           </div>
         </div>

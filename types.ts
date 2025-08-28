@@ -1,4 +1,5 @@
 
+
 export enum TransactionType {
   INCOME = 'income',
   EXPENSE = 'expense',
@@ -38,9 +39,6 @@ export interface PlannedExpense {
   description?: string;
   amount: number;
   category: Category;
-  isReminderSet: boolean;
-  reminderDateTime?: string; // ISO string for date and time
-  notificationShown?: boolean;
   isRecurring: boolean;
   targetMonth?: string; // YYYY-MM format
 }

@@ -21,13 +21,6 @@ const PlannedExpenseItem: React.FC<{ plan: PlannedExpense, onDelete: (id: string
                         {plan.isRecurring && <span className="font-semibold text-indigo-500 dark:text-indigo-400">Recurring</span>}
                         {plan.isRecurring && <span className="text-xs">&bull;</span>}
                         {plan.category}
-                        {plan.isReminderSet && plan.reminderDateTime && (
-                            <>
-                                <span className="text-xs">&bull;</span>
-                                <BellIcon className="w-3 h-3" /> 
-                                {new Date(plan.reminderDateTime).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                            </>
-                        )}
                     </p>
                 </div>
             </div>
@@ -53,7 +46,7 @@ const NextMonthExpensePlan: React.FC<NextMonthExpensePlanProps> = ({ plannedExpe
         <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-md">
             <div className="flex justify-between items-center cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
                 <div className='flex items-center gap-3'>
-                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Next Month's Expense Plan</h3>
+                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Future Expense Plans</h3>
                     <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}>
                          <ArrowRightIcon className="w-4 h-4 text-slate-400"/>
                     </div>

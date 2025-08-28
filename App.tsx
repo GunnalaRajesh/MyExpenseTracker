@@ -24,7 +24,6 @@ const App: React.FC = () => {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isPlanFormModalOpen, setIsPlanFormModalOpen] = useState(false);
   const [isTransactionsModalOpen, setIsTransactionsModalOpen] = useState(false);
-  const [notificationPermissionStatus, setNotificationPermissionStatus] = useState<NotificationPermission>('default');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const generateTransactionPdf = useCallback((
@@ -178,50 +177,6 @@ const App: React.FC = () => {
     return () => clearTimeout(timerId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Effect for handling notification permission on load
-  useEffect(() => {
-    if (!('Notification' in window)) {
-      console.log("This browser does not support desktop notification");
-      return;
-    }
-
-    const checkPermission = async () => {
-      let permission = Notification.permission;
-      // Request permission if it's not explicitly granted or denied
-      if (permission === 'default') {
-        permission = await Notification.requestPermission();
-      }
-      setNotificationPermissionStatus(permission);
-    };
-
-    checkPermission();
-  }, []);
-
-  // Effect for handling notifications for planned expenses
-  useEffect(() => {
-    if (notificationPermissionStatus !== 'granted') {
-      return;
-    }
-
-    const now = new Date();
-    let hasChanges = false;
-    const updatedPlannedExpenses = plannedExpenses.map(plan => {
-      if (plan.isReminderSet && plan.reminderDateTime && !plan.notificationShown && new Date(plan.reminderDateTime) <= now) {
-        new Notification(plan.title, {
-          body: `Category: ${plan.category}`,
-          icon: '/icon-192x192.png'
-        });
-        hasChanges = true;
-        return { ...plan, notificationShown: true };
-      }
-      return plan;
-    });
-
-    if (hasChanges) {
-      setPlannedExpenses(updatedPlannedExpenses);
-    }
-  }, [plannedExpenses, setPlannedExpenses, notificationPermissionStatus]);
   
   // Effect for cleaning up old one-time planned expenses
   useEffect(() => {
@@ -282,8 +237,7 @@ const App: React.FC = () => {
   const addPlannedExpense = useCallback((plan: Omit<PlannedExpense, 'id'>) => {
     setPlannedExpenses(prev => {
         const newPlan = { ...plan, id: uuidv4() };
-        const updated = [...prev, newPlan];
-        return updated.sort((a, b) => (a.reminderDateTime && b.reminderDateTime) ? new Date(a.reminderDateTime).getTime() - new Date(b.reminderDateTime).getTime() : 0);
+        return [...prev, newPlan];
     });
   }, [setPlannedExpenses]);
 
@@ -297,16 +251,13 @@ const App: React.FC = () => {
           description: p.description || undefined,
           amount: p.amount,
           category: p.category && EXPENSE_CATEGORIES.includes(p.category) ? p.category : EXPENSE_CATEGORIES[0],
-          isReminderSet: !!p.isReminderSet,
-          reminderDateTime: p.reminderDateTime || undefined,
-          notificationShown: !!p.notificationShown,
           isRecurring: !!p.isRecurring,
           targetMonth: p.targetMonth || undefined,
         }));
       
       const combined = [...prev, ...sanitizedPlans];
       const unique = Array.from(new Map(combined.map(p => [p.id, p])).values());
-      return unique.sort((a, b) => (a.reminderDateTime && b.reminderDateTime) ? new Date(a.reminderDateTime).getTime() - new Date(b.reminderDateTime).getTime() : 0);
+      return unique;
     });
   }, [setPlannedExpenses]);
 

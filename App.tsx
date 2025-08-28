@@ -1,21 +1,30 @@
+
+
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Transaction, TransactionType } from './types';
+import { Transaction, TransactionType, PlannedExpense, Category } from './types';
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, ALL_CATEGORIES } from './constants';
 import useLocalStorage from './hooks/useLocalStorage';
 import Summary from './components/Summary';
 import ExpenseChart from './components/ExpenseChart';
 import TransactionForm from './components/TransactionForm';
 import { ArrowLeftIcon, ArrowRightIcon, PlusIcon, ListBulletIcon, UploadIcon } from './components/icons';
 import TransactionsView from './components/TransactionsView';
+import NextMonthExpensePlan from './components/NextMonthExpensePlan';
+import NextMonthExpensePlanForm from './components/NextMonthExpensePlanForm';
+
 
 const App: React.FC = () => {
   const [transactions, setTransactions] = useLocalStorage<Transaction[]>('transactions', []);
+  const [plannedExpenses, setPlannedExpenses] = useLocalStorage<PlannedExpense[]>('plannedExpenses', []);
   const [lastAutoDownload, setLastAutoDownload] = useLocalStorage<string>('lastAutoDownload', '');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isPlanFormModalOpen, setIsPlanFormModalOpen] = useState(false);
   const [isTransactionsModalOpen, setIsTransactionsModalOpen] = useState(false);
+  const [notificationPermissionStatus, setNotificationPermissionStatus] = useState<NotificationPermission>('default');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const generateTransactionPdf = useCallback((
@@ -164,24 +173,100 @@ const App: React.FC = () => {
         }
     };
     
-    // Use a timeout to avoid interrupting the user immediately on app load.
     const timerId = setTimeout(checkAndAutoDownload, 5000); 
 
     return () => clearTimeout(timerId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only on initial mount
+  }, []);
+
+  // Effect for handling notification permission on load
+  useEffect(() => {
+    if (!('Notification' in window)) {
+      console.log("This browser does not support desktop notification");
+      return;
+    }
+
+    const checkPermission = async () => {
+      let permission = Notification.permission;
+      // Request permission if it's not explicitly granted or denied
+      if (permission === 'default') {
+        permission = await Notification.requestPermission();
+      }
+      setNotificationPermissionStatus(permission);
+    };
+
+    checkPermission();
+  }, []);
+
+  // Effect for handling notifications for planned expenses
+  useEffect(() => {
+    if (notificationPermissionStatus !== 'granted') {
+      return;
+    }
+
+    const now = new Date();
+    let hasChanges = false;
+    const updatedPlannedExpenses = plannedExpenses.map(plan => {
+      if (plan.isReminderSet && plan.reminderDateTime && !plan.notificationShown && new Date(plan.reminderDateTime) <= now) {
+        new Notification(plan.title, {
+          body: `Category: ${plan.category}`,
+          icon: '/icon-192x192.png'
+        });
+        hasChanges = true;
+        return { ...plan, notificationShown: true };
+      }
+      return plan;
+    });
+
+    if (hasChanges) {
+      setPlannedExpenses(updatedPlannedExpenses);
+    }
+  }, [plannedExpenses, setPlannedExpenses, notificationPermissionStatus]);
+  
+  // Effect for cleaning up old one-time planned expenses
+  useEffect(() => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0-11
+
+    const plansToKeep = plannedExpenses.filter(p => {
+        if (p.isRecurring) {
+            return true;
+        }
+        if (p.targetMonth) {
+            const [year, month] = p.targetMonth.split('-').map(Number);
+            // In targetMonth, month is 1-based. Convert to 0-based for comparison.
+            if (year < currentYear || (year === currentYear && month - 1 < currentMonth)) {
+                return false; // This is a past, non-recurring plan, so remove it.
+            }
+        }
+        return true; // Keep recurring plans and future/current one-time plans
+    });
+
+    if (plansToKeep.length < plannedExpenses.length) {
+        setPlannedExpenses(plansToKeep);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
-  const addTransactions = useCallback((newTransactions: Omit<Transaction, 'id'>[]) => {
+  const addTransactions = useCallback((newTransactions: any[]) => {
     setTransactions(prev => {
-      const transactionsWithIds = newTransactions.map(t => ({ ...t, id: uuidv4() }));
-      const combined = [...prev, ...transactionsWithIds];
+      const sanitizedTransactions = newTransactions
+        .filter(t => typeof t.amount === 'number' && t.date && typeof t.date === 'string')
+        .map((t): Transaction => ({
+          id: t.id || uuidv4(),
+          type: t.type === TransactionType.INCOME ? TransactionType.INCOME : TransactionType.EXPENSE,
+          category: t.category && ALL_CATEGORIES.includes(t.category)
+            ? t.category
+            : (t.type === TransactionType.INCOME ? INCOME_CATEGORIES[0] : EXPENSE_CATEGORIES[0]),
+          amount: t.amount,
+          description: t.description || 'Imported Transaction',
+          date: t.date,
+        }));
 
-      // Deduplicate based on a composite key
-      const unique = Array.from(
-        new Map(combined.map(t => [`${t.date}-${t.description}-${t.amount}-${t.type}-${t.category}`, t])).values()
-      );
-
+      const combined = [...prev, ...sanitizedTransactions];
+      const unique = Array.from(new Map(combined.map(t => [t.id, t])).values());
       return unique.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     });
   }, [setTransactions]);
@@ -189,10 +274,47 @@ const App: React.FC = () => {
   const addTransaction = useCallback((transaction: Omit<Transaction, 'id'>) => {
     addTransactions([transaction]);
   }, [addTransactions]);
-
+  
   const deleteTransaction = useCallback((id: string) => {
     setTransactions(prev => prev.filter(t => t.id !== id));
   }, [setTransactions]);
+
+  const addPlannedExpense = useCallback((plan: Omit<PlannedExpense, 'id'>) => {
+    setPlannedExpenses(prev => {
+        const newPlan = { ...plan, id: uuidv4() };
+        const updated = [...prev, newPlan];
+        return updated.sort((a, b) => (a.reminderDateTime && b.reminderDateTime) ? new Date(a.reminderDateTime).getTime() - new Date(b.reminderDateTime).getTime() : 0);
+    });
+  }, [setPlannedExpenses]);
+
+  const addPlannedExpensesBatch = useCallback((newPlans: any[]) => {
+    setPlannedExpenses(prev => {
+      const sanitizedPlans = newPlans
+        .filter(p => p.title && typeof p.amount === 'number')
+        .map((p): PlannedExpense => ({
+          id: p.id || uuidv4(),
+          title: p.title,
+          description: p.description || undefined,
+          amount: p.amount,
+          category: p.category && EXPENSE_CATEGORIES.includes(p.category) ? p.category : EXPENSE_CATEGORIES[0],
+          isReminderSet: !!p.isReminderSet,
+          reminderDateTime: p.reminderDateTime || undefined,
+          notificationShown: !!p.notificationShown,
+          isRecurring: !!p.isRecurring,
+          targetMonth: p.targetMonth || undefined,
+        }));
+      
+      const combined = [...prev, ...sanitizedPlans];
+      const unique = Array.from(new Map(combined.map(p => [p.id, p])).values());
+      return unique.sort((a, b) => (a.reminderDateTime && b.reminderDateTime) ? new Date(a.reminderDateTime).getTime() - new Date(b.reminderDateTime).getTime() : 0);
+    });
+  }, [setPlannedExpenses]);
+
+
+  const deletePlannedExpense = useCallback((id: string) => {
+    setPlannedExpenses(prev => prev.filter(p => p.id !== id));
+  }, [setPlannedExpenses]);
+
 
   const changeMonth = (offset: number) => {
     setCurrentDate(prevDate => {
@@ -211,13 +333,11 @@ const App: React.FC = () => {
     if (!file) {
       return;
     }
-
     if (file.type !== 'application/json') {
       alert('Please upload a valid .json file.');
       if (event.target) event.target.value = '';
       return;
     }
-
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
@@ -227,15 +347,37 @@ const App: React.FC = () => {
         }
         const data = JSON.parse(text);
         
-        if (!Array.isArray(data) || (data.length > 0 && typeof data[0].id === 'undefined')) {
-          throw new Error("Invalid JSON format for transactions.");
+        let transactionsToImport: any[] = [];
+        let plansToImport: any[] = [];
+
+        // Check for new backup format with transactions and/or plannedExpenses
+        if (typeof data === 'object' && data !== null && !Array.isArray(data) && ('transactions' in data || 'plannedExpenses' in data)) {
+            transactionsToImport = Array.isArray(data.transactions) ? data.transactions : [];
+            plansToImport = Array.isArray(data.plannedExpenses) ? data.plannedExpenses : [];
+        } 
+        // Check for old backup format (just an array of transactions)
+        else if (Array.isArray(data)) {
+            transactionsToImport = data;
+        } else {
+            throw new Error("Invalid JSON format for backup file.");
         }
 
-        addTransactions(data);
-        alert("Transactions imported successfully!");
+        if (transactionsToImport.length > 0) {
+            addTransactions(transactionsToImport);
+        }
+        if (plansToImport.length > 0) {
+            addPlannedExpensesBatch(plansToImport);
+        }
+
+        if (transactionsToImport.length > 0 || plansToImport.length > 0) {
+            alert("Backup data imported successfully!");
+        } else {
+            alert("No data found to import from file.");
+        }
+
       } catch (error) {
         console.error("Failed to parse or process the file:", error);
-        alert("Could not import transactions. The file might be corrupted or in the wrong format.");
+        alert("Could not import data. The file might be corrupted or in the wrong format.");
       } finally {
         if (event.target) event.target.value = '';
       }
@@ -282,6 +424,19 @@ const App: React.FC = () => {
         }
       }, 0);
   }, [transactions, currentDate]);
+  
+  const plansForDisplay = useMemo(() => {
+    const nextMonthDate = new Date(currentDate);
+    nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
+    const nextMonthString = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`;
+
+    return plannedExpenses.filter(p => {
+        if (p.isRecurring) {
+            return true;
+        }
+        return p.targetMonth === nextMonthString;
+    }).sort((a,b) => b.amount - a.amount);
+  }, [plannedExpenses, currentDate]);
 
   const formattedMonth = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
 
@@ -342,6 +497,11 @@ const App: React.FC = () => {
           <ExpenseChart transactions={monthlyTransactions} currentDate={currentDate} />
           <Summary totalIncome={totalIncome} totalExpenses={totalExpenses} openingBalance={openingBalance} />
 
+          <NextMonthExpensePlan
+            plannedExpenses={plansForDisplay}
+            onAddPlan={() => setIsPlanFormModalOpen(true)}
+            onDeletePlan={deletePlannedExpense}
+          />
         </main>
 
         <TransactionForm
@@ -349,10 +509,17 @@ const App: React.FC = () => {
           onClose={() => setIsFormModalOpen(false)}
           addTransaction={addTransaction}
         />
+        <NextMonthExpensePlanForm
+          isOpen={isPlanFormModalOpen}
+          onClose={() => setIsPlanFormModalOpen(false)}
+          addPlannedExpense={addPlannedExpense}
+          currentDate={currentDate}
+        />
         <TransactionsView
           isOpen={isTransactionsModalOpen}
           onClose={() => setIsTransactionsModalOpen(false)}
           transactions={transactions}
+          plannedExpenses={plannedExpenses}
           deleteTransaction={deleteTransaction}
           onDownloadPdf={generateTransactionPdf}
         />
@@ -361,4 +528,5 @@ const App: React.FC = () => {
   );
 };
 
+// Fix: Removed duplicate `export` keyword.
 export default App;

@@ -31,3 +31,16 @@ export interface Transaction {
   description: string;
   date: string; // ISO 8601 format: YYYY-MM-DD
 }
+
+export interface PlannedExpense {
+  id: string;
+  title: string;
+  description?: string;
+  amount: number;
+  category: Category;
+  isReminderSet: boolean;
+  reminderDateTime?: string; // ISO string for date and time
+  notificationShown?: boolean;
+  isRecurring: boolean;
+  targetMonth?: string; // YYYY-MM format
+}

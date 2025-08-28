@@ -3,13 +3,14 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, LabelList,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
-import { Transaction, TransactionType, Category } from '../types';
+import { Transaction, TransactionType, Category, PlannedExpense } from '../types';
 import { TrashIcon, IncomeIcon, ExpenseIcon, DownloadIcon } from './icons';
 
 interface TransactionListProps {
   transactions: Transaction[];
   deleteTransaction: (id: string) => void;
   allTransactions: Transaction[];
+  plannedExpenses: PlannedExpense[];
   onDownloadPdf: (pieChartImage: string | null, lineChartImage: string | null) => void;
 }
 
@@ -125,7 +126,7 @@ const getChartAsImage = (ref: React.RefObject<HTMLDivElement>): Promise<string |
 };
 
 
-const TransactionList: React.FC<TransactionListProps> = ({ transactions, deleteTransaction, allTransactions, onDownloadPdf }) => {
+const TransactionList: React.FC<TransactionListProps> = ({ transactions, deleteTransaction, allTransactions, plannedExpenses, onDownloadPdf }) => {
   const pieChartRef = useRef<HTMLDivElement>(null);
   const lineChartRef = useRef<HTMLDivElement>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -200,14 +201,20 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, deleteT
   };
 
   const handleDownloadJson = () => {
-    if (allTransactions.length === 0) {
-      alert("No transactions to back up.");
+    if (allTransactions.length === 0 && plannedExpenses.length === 0) {
+      alert("No data to back up.");
       return;
     }
-    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(allTransactions, null, 2))}`;
+
+    const backupData = {
+      transactions: allTransactions,
+      plannedExpenses: plannedExpenses,
+    };
+
+    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(backupData, null, 2))}`;
     const link = document.createElement('a');
     link.href = jsonString;
-    link.download = `my_transactions_backup.json`;
+    link.download = `expense_tracker_backup.json`;
     link.click();
   };
 
@@ -259,7 +266,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, deleteT
             <button
               onClick={handleDownloadJson}
               className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors"
-              aria-label="Backup transactions as JSON"
+              aria-label="Backup all data as JSON"
             >
               <DownloadIcon className="w-5 h-5" />
               <span>Backup</span>

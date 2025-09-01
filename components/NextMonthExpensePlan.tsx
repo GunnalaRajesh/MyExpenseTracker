@@ -56,18 +56,20 @@ const NextMonthExpensePlan: React.FC<NextMonthExpensePlanProps> = ({ plannedExpe
                 </span>
             </div>
             
-            <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-screen mt-4' : 'max-h-0'}`}>
-                {plannedExpenses.length > 0 ? (
-                     <ul className="divide-y divide-slate-200 dark:divide-slate-700">
-                        {plannedExpenses.map(plan => (
-                            <PlannedExpenseItem key={plan.id} plan={plan} onDelete={onDeletePlan} />
-                        ))}
-                    </ul>
-                ) : (
-                    <p className="text-center text-slate-500 dark:text-slate-400 py-4">No expenses planned yet. Get started by adding one!</p>
-                )}
+            <div className={`transition-all duration-500 ease-in-out overflow-hidden flex flex-col ${isExpanded ? 'max-h-[60vh] mt-4' : 'max-h-0'}`}>
+                <div className="flex-auto overflow-y-auto pr-2">
+                    {plannedExpenses.length > 0 ? (
+                        <ul className="divide-y divide-slate-200 dark:divide-slate-700">
+                            {plannedExpenses.map(plan => (
+                                <PlannedExpenseItem key={plan.id} plan={plan} onDelete={onDeletePlan} />
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-center text-slate-500 dark:text-slate-400 py-4">No expenses planned yet. Get started by adding one!</p>
+                    )}
+                </div>
 
-                <div className="mt-4 flex justify-end">
+                <div className="flex-shrink-0 mt-4 flex justify-end">
                     <button
                         onClick={onAddPlan}
                         className="flex items-center gap-2 bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-200"

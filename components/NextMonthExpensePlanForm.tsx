@@ -14,7 +14,6 @@ interface NextMonthExpensePlanFormProps {
 
 const NextMonthExpensePlanForm: React.FC<NextMonthExpensePlanFormProps> = ({ isOpen, onClose, addPlannedExpense, currentDate }) => {
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<Category>(EXPENSE_CATEGORIES[0]);
   const [isRecurring, setIsRecurring] = useState(false);
@@ -22,7 +21,6 @@ const NextMonthExpensePlanForm: React.FC<NextMonthExpensePlanFormProps> = ({ isO
 
   const resetForm = () => {
     setTitle('');
-    setDescription('');
     setAmount('');
     setCategory(EXPENSE_CATEGORIES[0]);
     setIsRecurring(false);
@@ -55,7 +53,6 @@ const NextMonthExpensePlanForm: React.FC<NextMonthExpensePlanFormProps> = ({ isO
 
     addPlannedExpense({
       title,
-      description,
       amount: parseFloat(amount),
       category,
       isRecurring,
@@ -82,10 +79,6 @@ const NextMonthExpensePlanForm: React.FC<NextMonthExpensePlanFormProps> = ({ isO
             <label htmlFor="plan-title" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Title</label>
             <input id="plan-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Monthly Rent" required className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-slate-800 dark:text-slate-200" />
             {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
-          </div>
-          <div>
-            <label htmlFor="plan-desc" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Description (Optional)</label>
-            <textarea id="plan-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g., Payment for upcoming month" rows={2} className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-slate-800 dark:text-slate-200" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
